@@ -1,56 +1,57 @@
+# Laundry MQTT Integration
 
-# Laundry Machine MQTT Integration
+This repository contains the firmware and test environment for integrating **laundry machines with a tablet console application using MQTT**.
 
-ESP32-based system for integrating laundry machines with a central console using **MQTT**.
+The system consists of:
 
-This project enables a laundromat console application to:
+- ESP32 **Machine Controller** (controls the washing machine)
+- ESP32 **Coin Collector** (handles coin payments and user interface)
+- **Node-RED test environment**
+- **Mosquitto MQTT broker**
 
-- Accept coin payments
-- Select washing programs
-- Start machines remotely
-- Monitor machine status
-- Track machine usage
-
-The system uses **ESP32 controllers**, **Mosquitto MQTT broker**, and **Node-RED for testing and automation**.
+The goal is to allow the **tablet console application** to communicate with laundry machines through MQTT.
 
 ---
 
 # System Architecture
 
-Customer  
-↓  
-Laundry Console (Tablet / Web App)  
-↓  
-Node-RED  
-↓  
-MQTT Broker (Mosquitto)  
-↓  
-ESP32 Coin Collector  
-↓  
-ESP32 Machine Controller  
-↓  
-Laundry Machine  
+```
+Customer
+   │
+   ▼
+Tablet Console App
+   │
+   │ HTTP API
+   ▼
+Node-RED
+   │
+   │ MQTT
+   ▼
+MQTT Broker (Mosquitto)
+   │
+   ├──────────────► ESP32 Machine Controller
+   │                 (controls machine)
+   │
+   └──────────────► ESP32 Coin Collector
+                     (handles coins & credit)
+```
 
 ---
 
 # Repository Structure
 
 ```
-laundry-mqtt-integration/
+laundry-mqtt-integration
 │
 ├── README.md
 │
-├── esp32-machine-controller/
-│   ├── src/
-│   │   └── main.cpp
-│   └── platformio.ini
+├── esp32-machine-controller
+│   └── main.cpp
 │
-├── esp32-coin-collector/
-│   ├── src/
-│   │   └── main.cpp
-│   └── platformio.ini
+├── esp32-coin-collector
+│   └── main.cpp
 │
-└── nodered-test-flow/
+└── nodered
     └── laundry_test_flow.json
 ```
 
@@ -58,417 +59,277 @@ laundry-mqtt-integration/
 
 # Components
 
-## ESP32 Machine Controller
+## 1️⃣ ESP32 Machine Controller
 
-Controls the washing machine through optocouplers that emulate button presses.
+Controls the washing machine by simulating button presses through optocouplers.
 
-Functions:
+### Functions
 
-- Select washing program
+- Select machine mode
 - Start machine
-- Reset machine
-- Detect door status
 - Detect machine running state
-- Send status updates via MQTT
+- Detect door lock state
+- Publish machine status via MQTT
+
+### Hardware Pins
+
+| Pin | Function |
+|----|----|
+| GPIO16 | DEC_OPTO (reset program) |
+| GPIO17 | INC_OPTO (increment program) |
+| GPIO5 | START_OPTO |
+| GPIO15 | INC LED |
+| GPIO2 | DEC LED |
+| GPIO4 | START LED |
+| GPIO18 | Door lock sensor |
 
 ---
 
-## ESP32 Coin Collector
+## 2️⃣ ESP32 Coin Collector
 
-Handles coin acceptor pulses and tracks customer credit.
+Handles coin input and user interaction.
 
-Functions:
+### Functions
 
 - Detect coin pulses
-- Convert pulses to currency (MAD)
-- Track inserted credit
+- Convert pulses to currency
 - Display credit on OLED
-- Send payment requests to console
+- Send payment request
+- Handle reset commands
+
+### Hardware Pins
+
+| Pin | Function |
+|----|----|
+| GPIO26 | Left button |
+| GPIO25 | Confirm button |
+| GPIO33 | Right button |
+| GPIO27 | Coin pulse input |
+| I2C | OLED Display |
 
 ---
 
-## Node-RED Test Flow
+# MQTT Topics
 
-Used for development and testing.
-
-Allows:
-
-- Sending machine commands
-- Monitoring machine state
-- Simulating console integration
-
-Import the flow using:
-
-Node-RED → Menu → Import → `laundry_test_flow.json`
-
----
-
-# MQTT Broker
-
-The system uses **Mosquitto** as the MQTT broker.
-
-Default configuration:
-
-Port: **1883**  
-Protocol: **MQTT v3.1.1**
-
----
-
-# MQTT Topic Structure
-
-All communication follows this structure:
+Machine ID is dynamic.
 
 ```
-laundry/machine/<machine_id>/<category>
+<MACHINE_ID>
 ```
 
-Example machine ID:
-
-```
-2
-```
-
----
-
-# Machine Status Topics
-
-Published by the **ESP32 Machine Controller**
-
-### Machine Online Status
-
-Topic
-
-```
-laundry/machine/<id>/status
-```
-
-Payload
-
-```
-online
-```
-
-Example
+Example:
 
 ```
 laundry/machine/2/status
-online
 ```
 
 ---
 
-### Current Program Mode
+# Machine Controller Topics
 
-Topic
+## Published
+
+Machine → MQTT
 
 ```
+laundry/machine/<id>/status
 laundry/machine/<id>/mode
-```
-
-Payload
-
-```
-1-8
-```
-
-Example
-
-```
-laundry/machine/2/mode
-3
-```
-
----
-
-### Machine Running State
-
-Topic
-
-```
 laundry/machine/<id>/running
-```
-
-Payload
-
-```
-0 = stopped
-1 = running
+laundry/machine/<id>/door
+laundry/machine/<id>/event/started
+laundry/machine/<id>/event/finished
 ```
 
 Example
 
 ```
 laundry/machine/2/running
-1
+payload: 1
 ```
 
 ---
 
-### Door Status
+## Subscribed
 
-Topic
-
-```
-laundry/machine/<id>/door
-```
-
-Payload
+MQTT → Machine
 
 ```
-open
-closed
+laundry/machine/<id>/cmd/setmode
+laundry/machine/<id>/cmd/start
+laundry/machine/<id>/cmd/reset
 ```
 
 Example
 
 ```
-laundry/machine/2/door
-closed
-```
+Topic:
+laundry/machine/2/cmd/setmode
 
----
-
-### Program Finished Event
-
-Topic
-
-```
-laundry/machine/<id>/event/finished
-```
-
-Payload
-
-```
-1
-```
-
-Example
-
-```
-laundry/machine/2/event/finished
-1
+Payload:
+3
 ```
 
 ---
 
 # Coin Collector Topics
 
-Published by the **ESP32 Coin Collector**
-
-### Coin Inserted
-
-Topic
+## Published
 
 ```
 laundry/machine/<id>/coin/inserted
-```
-
-Payload
-
-```
-0.5
-1
-2
-5
-10
-```
-
-Example
-
-```
-laundry/machine/2/coin/inserted
-5
-```
-
----
-
-### Payment Request
-
-When the user presses **confirm** after inserting coins.
-
-Topic
-
-```
+laundry/machine/<id>/credit
 laundry/machine/<id>/payment/request
-```
-
-Payload
-
-```
-credit value
+laundry/machine/<id>/stats/total
 ```
 
 Example
 
 ```
-laundry/machine/2/payment/request
-15
+laundry/machine/1/coin/inserted
+payload: 2
 ```
 
 ---
 
-# Console Commands
-
-Sent from **console application → machine controller**
-
-### Select Program
-
-Topic
-
-```
-laundry/machine/<id>/cmd/setmode
-```
-
-Payload
-
-```
-1-8
-```
-
-Example
-
-```
-laundry/machine/2/cmd/setmode
-3
-```
-
----
-
-### Start Machine
-
-Topic
-
-```
-laundry/machine/<id>/cmd/start
-```
-
-Payload
-
-```
-1
-```
-
-Example
-
-```
-laundry/machine/2/cmd/start
-1
-```
-
----
-
-### Reset Machine
-
-Topic
+## Subscribed
 
 ```
 laundry/machine/<id>/cmd/reset
-```
-
-Payload
-
-```
-1
-```
-
-Example
-
-```
-laundry/machine/2/cmd/reset
-1
+laundry/machine/<id>/cmd/start
 ```
 
 ---
 
-# Example MQTT Messages
+# Node-RED Flow
 
-Machine started
+Node-RED acts as the bridge between:
 
-Topic
+- MQTT devices
+- Tablet console API
 
-```
-laundry/machine/2/running
-```
+The flow performs:
 
-Payload
+1. Receives coin events
+2. Sends payment request to console API
+3. Waits for approval
+4. Sends machine start command
 
-```
-1
-```
+---
 
-Door closed
+# API Integration
 
-Topic
+Node-RED sends HTTP requests to the console application.
 
-```
-laundry/machine/2/door
-```
-
-Payload
+Example endpoints:
 
 ```
-closed
+POST /api/coin-inserted
+POST /api/payment-request
+POST /api/machine-finished
+```
+
+Payload example:
+
+```
+{
+  "machineId": "2",
+  "amount": 5,
+  "timestamp": "2026-02-22T16:30:00Z"
+}
 ```
 
 ---
 
-# Development Environment
+# Quick Test
 
-Firmware is built using **PlatformIO**.
-
-Example configuration:
+### 1 Start Mosquitto
 
 ```
-[env:esp32dev]
-platform = espressif32
-board = esp32dev
-framework = arduino
-
-lib_deps =
-    knolleary/PubSubClient
+docker run -d -p 1883:1883 eclipse-mosquitto
 ```
 
----
-
-# Required Infrastructure
-
-The system requires:
-
-- MQTT Broker (Mosquitto)
-- ESP32 Machine Controller
-- ESP32 Coin Collector
-- Laundry Console Application
-- Node-RED (for testing and automation)
-
----
-
-# Testing
-
-Machine commands can be tested using **Node-RED** or any MQTT client.
-
-Example test command:
-
-Topic
+### 2 Start Node-RED
 
 ```
-laundry/machine/2/cmd/setmode
+docker run -d -p 1880:1880 nodered/node-red
 ```
 
-Payload
+Open
 
 ```
-3
-```
-
-The machine should respond with:
-
-```
-laundry/machine/2/mode
-3
+http://localhost:1880
 ```
 
 ---
 
-# License
+### 3 Import Node-RED Flow
 
-Internal project – laundry machine automation system.
+Import:
+
+```
+nodered/laundry_test_flow.json
+```
+
+---
+
+### 4 Power ESP32 Devices
+
+Both ESP32 boards will automatically connect to:
+
+```
+MQTT broker
+```
+
+---
+
+### 5 Monitor Topics
+
+Use Node-RED debug panel or:
+
+```
+mosquitto_sub -h localhost -t "#" -v
+```
+
+Example output
+
+```
+laundry/machine/2/status online
+laundry/machine/2/mode 1
+laundry/machine/2/running 0
+laundry/machine/2/door open
+```
+
+---
+
+# Requirements
+
+### Hardware
+
+- ESP32 DevKit
+- Optocouplers
+- Coin acceptor
+- OLED display
+- Washing machine interface
+
+### Software
+
+- Mosquitto MQTT
+- Node-RED
+- Arduino / PlatformIO
+- Docker (optional)
+
+---
+
+# Notes
+
+- Machine IDs must be unique.
+- MQTT broker must be reachable by ESP32 devices.
+- Node-RED acts only as a middleware bridge.
+
+---
+
+# Author
+
+Oussama Nordine  
+Electrical Engineering Student  
+Embedded Systems / IoT Development
