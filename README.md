@@ -45,6 +45,8 @@ laundry-mqtt-integration
 │
 ├── README.md
 │
+├── HOW_TO_USE.md
+│
 ├── esp32-machine-controller
 │   └── main.cpp
 │
