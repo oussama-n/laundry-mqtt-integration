@@ -1,0 +1,229 @@
+[
+    {
+        "id": "8d7b9a6d8c94f2c4",
+        "type": "tab",
+        "label": "Laundry System",
+        "disabled": false
+    },
+    {
+        "id": "mqtt_broker",
+        "type": "mqtt-broker",
+        "name": "Laundry MQTT",
+        "broker": "mosquitto",
+        "port": "1883",
+        "clientid": "nodered_laundry",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "1cfa208a697abdac",
+        "type": "server",
+        "name": "Home Assistant",
+        "addon": true
+    },
+    {
+        "id": "c74c172b64ae0884",
+        "type": "mqtt in",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "ALL MQTT",
+        "topic": "laundry/machine/#",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "mqtt_broker",
+        "inputs": 0,
+        "x": 180,
+        "y": 100,
+        "wires": [
+            [
+                "2f03666c35bc48e7"
+            ]
+        ]
+    },
+    {
+        "id": "2f03666c35bc48e7",
+        "type": "debug",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "MQTT DEBUG",
+        "active": true,
+        "complete": "true",
+        "x": 420,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "1ebaf370130f4bec",
+        "type": "inject",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "SET MODE 3",
+        "props": [
+            {
+                "p": "topic",
+                "v": "laundry/machine/2/cmd/setmode",
+                "vt": "str"
+            },
+            {
+                "p": "payload",
+                "v": "3",
+                "vt": "str"
+            }
+        ],
+        "x": 170,
+        "y": 200,
+        "wires": [
+            [
+                "168d9e4f8cf7a4e2"
+            ]
+        ]
+    },
+    {
+        "id": "26758c9345102482",
+        "type": "inject",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "START MACHINE",
+        "props": [
+            {
+                "p": "topic",
+                "v": "laundry/machine/2/cmd/start",
+                "vt": "str"
+            },
+            {
+                "p": "payload",
+                "v": "1",
+                "vt": "str"
+            }
+        ],
+        "x": 170,
+        "y": 260,
+        "wires": [
+            [
+                "168d9e4f8cf7a4e2"
+            ]
+        ]
+    },
+    {
+        "id": "c16e486818659b06",
+        "type": "inject",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "RESET MACHINE",
+        "props": [
+            {
+                "p": "topic",
+                "v": "laundry/machine/2/cmd/reset",
+                "vt": "str"
+            },
+            {
+                "p": "payload",
+                "v": "1",
+                "vt": "str"
+            }
+        ],
+        "x": 170,
+        "y": 320,
+        "wires": [
+            [
+                "168d9e4f8cf7a4e2"
+            ]
+        ]
+    },
+    {
+        "id": "168d9e4f8cf7a4e2",
+        "type": "mqtt out",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "SEND MQTT",
+        "topic": "",
+        "broker": "mqtt_broker",
+        "x": 420,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "0cb04efa323897ee",
+        "type": "mqtt in",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "Payment Request",
+        "topic": "laundry/machine/+/payment/request",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "mqtt_broker",
+        "inputs": 0,
+        "x": 180,
+        "y": 420,
+        "wires": [
+            [
+                "23a4b9ad8390fcf6"
+            ]
+        ]
+    },
+    {
+        "id": "23a4b9ad8390fcf6",
+        "type": "function",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "Parse Payment",
+        "func": "const machineId = msg.topic.split('/')[2];\nmsg.payload = JSON.parse(msg.payload);\nmsg.payload.machineId = machineId;\nreturn msg;",
+        "outputs": 1,
+        "x": 420,
+        "y": 420,
+        "wires": [
+            [
+                "f1e4391496f0cfbe"
+            ]
+        ]
+    },
+    {
+        "id": "f1e4391496f0cfbe",
+        "type": "debug",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "PAYMENT DEBUG",
+        "active": true,
+        "complete": "payload",
+        "x": 640,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "bdfc4f8bfe310547",
+        "type": "mqtt in",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "Machine Finished",
+        "topic": "laundry/machine/+/event/finished",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "mqtt_broker",
+        "inputs": 0,
+        "x": 180,
+        "y": 520,
+        "wires": [
+            [
+                "3ccdece81fb3f9ab"
+            ]
+        ]
+    },
+    {
+        "id": "3ccdece81fb3f9ab",
+        "type": "debug",
+        "z": "8d7b9a6d8c94f2c4",
+        "name": "FINISHED DEBUG",
+        "active": true,
+        "complete": "true",
+        "x": 420,
+        "y": 520,
+        "wires": []
+    }
+]
