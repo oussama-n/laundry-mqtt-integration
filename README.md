@@ -13,6 +13,14 @@ The goal is to allow the **tablet console application** to communicate with laun
 
 ---
 
+## Setup
+
+See the full setup guide:
+
+➡️ [How to Run the Backend](HOW_TO_USE.md)
+
+---
+
 # System Architecture
 
 ```
