@@ -21,9 +21,9 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define PIN_COIN    27
 
 // ---------- WIFI / MQTT ----------
-const char* ssid = "MyPC";
-const char* password = "00000000";
-const char* mqtt_server = "192.168.1.50";
+const char* ssid = "XXXXXX";
+const char* password = "XXXXXX";
+const char* mqtt_server = "192.168.1.XXX";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
