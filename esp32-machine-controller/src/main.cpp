@@ -15,9 +15,9 @@
 #define DOOR_SENSOR 18  
 
 // ---------- WIFI / MQTT ----------
-const char* ssid = "La_Fibre_dOrange_300A";
-const char* password = "3A75Y2DZDKH67GXAEH";
-const char* mqtt_server = "192.168.11.148";
+const char* ssid = "XXXXX";
+const char* password = "XXXXX";
+const char* mqtt_server = "192.168.11.XXX";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
